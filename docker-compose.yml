@@ -1,0 +1,16 @@
+services:
+
+  mysql:
+    image: mysql
+    ports:
+      - "3307:3306"
+    restart: always
+    container_name: hrapid-mysql
+    environment:
+      MYSQL_DATABASE: hrapid
+      MYSQL_ROOT_PASSWORD: hrapid
+    volumes:
+      - dbdata:/var/lib/mysql
+
+volumes:
+  dbdata:
