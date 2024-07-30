@@ -3,15 +3,18 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Silimim/hrapid-backend/api"
 	"github.com/Silimim/hrapid-backend/db"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"gorm.io/gorm"
 )
 
-var database *gorm.DB
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
 
 func main() {
 
@@ -23,7 +26,7 @@ func main() {
 
 	db.InitDB()
 
-	database, err = db.INITORM()
+	_, err = db.INITORM()
 	if err != nil {
 		log.Fatalf("Error starting GORM")
 	} else {
@@ -31,8 +34,11 @@ func main() {
 	}
 
 	router := mux.NewRouter()
+	router.HandleFunc("/health", HealthCheckHandler)
 	router.HandleFunc("/users", api.GetUsers).Methods("GET")
 	router.HandleFunc("/users", api.AddUser).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), router))
+
 }

@@ -2,17 +2,22 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/Silimim/hrapid-backend/db/query"
 )
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
+
 	users, err := query.User.Find()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("%v", users)
+
 	json.NewEncoder(w).Encode(users)
 }
 
