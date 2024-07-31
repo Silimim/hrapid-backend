@@ -12,6 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var database *gorm.DB
+
 func InitDB() {
 
 	migrations := &migrate.FileMigrationSource{
@@ -38,7 +40,7 @@ func InitDB() {
 	db.Close()
 }
 
-func INITORM() (db *gorm.DB, err error) {
+func InitORM() {
 	dsn := os.Getenv("MYSQL_USER") +
 		":" +
 		os.Getenv("MYSQL_PASSWORD") +
@@ -53,14 +55,22 @@ func INITORM() (db *gorm.DB, err error) {
 		Mode:    gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
 	})
 
-	gormdb, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
-	g.UseDB(gormdb)
+	database = db
+
+	if err != nil {
+		log.Fatalf("Error during db open: %s\n", err)
+	}
+
+	g.UseDB(database)
 
 	g.ApplyBasic(
 		g.GenerateAllTable()...,
 	)
 	g.Execute()
+}
 
-	return gormdb, err
+func GetDB() *gorm.DB {
+	return database
 }

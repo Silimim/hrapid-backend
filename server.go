@@ -26,17 +26,17 @@ func main() {
 
 	db.InitDB()
 
-	_, err = db.INITORM()
+	db.InitORM()
+
 	if err != nil {
 		log.Fatalf("Error starting GORM")
 	} else {
 		log.Printf("GORM started successfully")
 	}
 
-	router := mux.NewRouter()
+	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.HandleFunc("/health", HealthCheckHandler)
 	router.HandleFunc("/users", api.GetUsers).Methods("GET")
-	router.HandleFunc("/users", api.AddUser).Methods("POST")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), router))
