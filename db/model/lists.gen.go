@@ -12,10 +12,10 @@ const TableNameList = "lists"
 
 // List mapped from table <lists>
 type List struct {
-	ID          int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	Description string    `gorm:"column:description;not null" json:"description"`
-	DateAdded   time.Time `gorm:"column:date_added" json:"date_added"`
-	UserAddedID int32     `gorm:"column:user_added_id" json:"user_added_id"`
+	ID          int32      `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	Description string     `gorm:"column:description;not null" json:"description"`
+	DateAdded   *time.Time `gorm:"column:date_added" json:"date_added"`
+	UserAddedID *int32     `gorm:"column:user_added_id" json:"user_added_id"`
 }
 
 // TableName List's table name

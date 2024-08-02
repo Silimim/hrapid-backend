@@ -37,6 +37,10 @@ func main() {
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.HandleFunc("/health", HealthCheckHandler)
 	router.HandleFunc("/users", api.GetUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", api.GetUser).Methods("GET")
+	router.HandleFunc("/companies", api.GetCompanies).Methods("GET")
+	router.HandleFunc("/companies/{id}", api.GetCompany).Methods("GET")
+	router.HandleFunc("/companies", api.CreateCompany).Methods("POST")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), router))

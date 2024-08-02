@@ -12,8 +12,8 @@ const TableNameGorpMigration = "gorp_migrations"
 
 // GorpMigration mapped from table <gorp_migrations>
 type GorpMigration struct {
-	ID        string    `gorm:"column:id;primaryKey" json:"id"`
-	AppliedAt time.Time `gorm:"column:applied_at" json:"applied_at"`
+	ID        string     `gorm:"column:id;primaryKey" json:"id"`
+	AppliedAt *time.Time `gorm:"column:applied_at" json:"applied_at"`
 }
 
 // TableName GorpMigration's table name

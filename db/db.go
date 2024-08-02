@@ -51,8 +51,9 @@ func InitORM() {
 		")/hrapid?charset=utf8mb4&parseTime=True&loc=Local"
 
 	g := gen.NewGenerator(gen.Config{
-		OutPath: "db/query",
-		Mode:    gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
+		OutPath:       "db/query",
+		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
+		FieldNullable: true,
 	})
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
