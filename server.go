@@ -7,6 +7,7 @@ import (
 
 	"github.com/Silimim/hrapid-backend/api"
 	"github.com/Silimim/hrapid-backend/db"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -34,6 +35,10 @@ func main() {
 		log.Printf("GORM started successfully")
 	}
 
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Access-Control-Allow-Origin"})
+	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "DELETE", "PATCH", "UPDATE"})
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.HandleFunc("/health", HealthCheckHandler)
 	router.HandleFunc("/users", api.GetUsers).Methods("GET")
@@ -43,6 +48,5 @@ func main() {
 	router.HandleFunc("/companies", api.CreateCompany).Methods("POST")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), router))
-
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
 }
