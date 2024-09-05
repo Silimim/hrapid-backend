@@ -8,53 +8,53 @@ import (
 	"github.com/Silimim/hrapid-backend/db/model"
 )
 
-func GetCompanies(w http.ResponseWriter, r *http.Request) {
+func GetEmployees(w http.ResponseWriter, r *http.Request) {
 
-	var companies []*model.Company
+	var employee []*model.Employee
 
-	db.GetDB().Find(&companies)
+	db.GetDB().Find(&employee)
 
 	w.WriteHeader(http.StatusOK)
 
-	err := json.NewEncoder(w).Encode(companies)
+	err := json.NewEncoder(w).Encode(employee)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func GetCompany(w http.ResponseWriter, r *http.Request) {
+func GetEmployee(w http.ResponseWriter, r *http.Request) {
 
-	var company *model.Company
+	var employee *model.Employee
 
-	db.GetDB().Find(&company, r.URL.Query().Get("id"))
+	db.GetDB().Find(&employee, r.URL.Query().Get("id"))
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
 
-	err := json.NewEncoder(w).Encode(company)
+	err := json.NewEncoder(w).Encode(employee)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func CreateCompany(w http.ResponseWriter, r *http.Request) {
+func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 
-	var company model.Company
+	var employee model.Employee
 
-	err := json.NewDecoder(r.Body).Decode(&company)
+	err := json.NewDecoder(r.Body).Decode(&employee)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	db.GetDB().Create(&company)
+	db.GetDB().Create(&employee)
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
 
-	err = json.NewEncoder(w).Encode(company)
+	err = json.NewEncoder(w).Encode(employee)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
