@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Silimim/hrapid-backend/api"
+	"github.com/Silimim/hrapid-backend/auth"
 	"github.com/Silimim/hrapid-backend/db"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -46,6 +47,9 @@ func main() {
 	router.HandleFunc("/companies", api.GetCompanies).Methods("GET")
 	router.HandleFunc("/companies/{id}", api.GetCompany).Methods("GET")
 	router.HandleFunc("/companies", api.CreateCompany).Methods("POST")
+
+	router.HandleFunc("/register", auth.Register).Methods("POST")
+	router.HandleFunc("/login", auth.Login).Methods("POST")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))

@@ -15,43 +15,44 @@ import (
 	"gorm.io/gorm"
 )
 
-func Register(w http.ResponseWriter, r *http.Request) (string, error) {
+func Register(w http.ResponseWriter, r *http.Request) {
 
 	var user model.User
 
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return "", err
+		http.Error(w, "payload error", http.StatusBadRequest)
 	}
 
 	if user.Username == "" || user.Password == "" || user.Email == "" {
-		return "", errors.New("username, password, and email cannot be empty")
+		http.Error(w, "username, password and email cannot be empty", http.StatusBadRequest)
 	}
 
 	if err := db.GetDB().Where("username = ? OR email = ?", user.Username, user.Email).First(&user).Error; err == nil {
-		return "", errors.New("username or email already exists")
+		http.Error(w, "username or email already exists", http.StatusBadRequest)
 	}
 
 	if !isValidEmail(user.Email) {
-		return "", errors.New("invalid email format")
+		http.Error(w, "email is not in a valid format", http.StatusBadRequest)
 	}
 
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
-		return "", err
+		http.Error(w, "error during password hashing", http.StatusInternalServerError)
 	}
 
 	user.Password = hashedPassword
 
 	db.GetDB().Create(&user)
+	w.Header().Set("Content-Type", "application/json")
 
-	token, err := generateJWT(user)
+	w.WriteHeader(http.StatusOK)
+
+	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
-		return "", err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	return token, nil
 }
 
 func Login(w http.ResponseWriter, r *http.Request) (string, error) {
@@ -59,14 +60,14 @@ func Login(w http.ResponseWriter, r *http.Request) (string, error) {
 	var user model.User
 
 	if user.Username == "" || user.Password == "" {
-		return "", errors.New("username and password cannot be empty")
+		http.Error(w, "username and password cannot be empty", http.StatusBadRequest)
 	}
 
 	result := db.GetDB().Where("username = ?", user.Username).First(&user)
 
 	if err := result.Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", errors.New("invalid username or password")
+			http.Error(w, "user not found", http.StatusNotFound)
 		}
 		return "", err
 	}
