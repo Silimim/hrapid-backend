@@ -55,7 +55,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Login(w http.ResponseWriter, r *http.Request) (string, error) {
+func Login(w http.ResponseWriter, r *http.Request) {
 
 	var user model.User
 
@@ -69,19 +69,25 @@ func Login(w http.ResponseWriter, r *http.Request) (string, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 		}
-		return "", err
+		http.Error(w, "uerror during user search", http.StatusInternalServerError)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(user.Password)); err != nil {
-		return "", errors.New("invalid username or password")
+		http.Error(w, "invalid username or password", http.StatusBadRequest)
 	}
 
 	token, err := generateJWT(user)
 	if err != nil {
-		return "", err
+		http.Error(w, "uerror during token generation", http.StatusInternalServerError)
 	}
 
-	return token, nil
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(token)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func isValidEmail(email string) bool {
