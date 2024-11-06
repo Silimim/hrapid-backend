@@ -40,7 +40,8 @@ func main() {
 	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "DELETE", "PATCH", "UPDATE"})
 
-	router := mux.NewRouter().PathPrefix("/api").Subrouter()
+	authRouter := mux.NewRouter()
+	router := authRouter.PathPrefix("/auth").Subrouter()
 	router.HandleFunc("/health", HealthCheckHandler)
 	router.HandleFunc("/users", api.GetUsers).Methods("GET")
 	router.HandleFunc("/users/{id}", api.GetUser).Methods("GET")
@@ -48,9 +49,10 @@ func main() {
 	router.HandleFunc("/companies/{id}", api.GetCompany).Methods("GET")
 	router.HandleFunc("/companies", api.CreateCompany).Methods("POST")
 
-	router.HandleFunc("/register", auth.Register).Methods("POST")
-	router.HandleFunc("/login", auth.Login).Methods("POST")
+	authRouter.HandleFunc("/register", auth.Register).Methods("POST")
+	authRouter.HandleFunc("/login", auth.Login).Methods("POST")
+	authRouter.HandleFunc("/token", auth.Token).Methods("POST")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(authRouter)))
 }

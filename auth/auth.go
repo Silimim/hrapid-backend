@@ -3,10 +3,9 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
-	"os"
 	"regexp"
-	"time"
 
 	"github.com/Silimim/hrapid-backend/db"
 	"github.com/Silimim/hrapid-backend/db/model"
@@ -76,7 +75,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid username or password", http.StatusBadRequest)
 	}
 
-	token, err := generateJWT(user)
+	token, err := generateTokenPair(user)
 	if err != nil {
 		http.Error(w, "uerror during token generation", http.StatusInternalServerError)
 	}
@@ -86,7 +85,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -100,18 +98,43 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func generateJWT(user model.User) (string, error) {
-	secretKey := []byte(os.Getenv("SECRET_KEY"))
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"role":     user.Role,
-		"exp":      time.Now().Add(time.Hour * 72).Unix(),
-	})
+func Token(w http.ResponseWriter, r *http.Request) {
 
-	tokenString, err := token.SignedString(secretKey)
+	var tokenReq tokenReqBody
+
+	err := json.NewDecoder(r.Body).Decode(&tokenReq)
 	if err != nil {
-		return "", err
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	return tokenString, nil
+	var user *model.User
+
+	token, _ := jwt.Parse(tokenReq.RefreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte("secret"), nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		db.GetDB().Where("id = ?", int(claims["sub"].(float64))).First(&user)
+		if claims["sub"] == user.ID {
+
+			newTokenPair, err := generateTokenPair(*user)
+			if err != nil {
+				http.Error(w, "error in token generation", http.StatusInternalServerError)
+			}
+
+			w.WriteHeader(http.StatusOK)
+
+			err = json.NewEncoder(w).Encode(newTokenPair)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		}
+
+		http.Error(w, "invalid user", http.StatusBadRequest)
+	}
 }
