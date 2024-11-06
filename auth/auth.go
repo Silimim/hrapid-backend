@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,46 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+func JwtAuthentication(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenString := r.Header.Get("Authorization")
+		if tokenString == "" {
+			http.Error(w, "missing authorization token", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+
+			return []byte("secret"), nil
+		})
+
+		if err != nil {
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			userID := int(claims["sub"].(float64))
+			var user model.User
+			result := db.GetDB().Where("id = ?", userID).First(&user)
+			if result.Error != nil {
+				http.Error(w, "user not found", http.StatusNotFound)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), "user", user)
+			r = r.WithContext(ctx)
+		} else {
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func Register(w http.ResponseWriter, r *http.Request) {
 
@@ -98,7 +139,7 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func Token(w http.ResponseWriter, r *http.Request) {
+func Refresh(w http.ResponseWriter, r *http.Request) {
 
 	var tokenReq tokenReqBody
 
