@@ -9,16 +9,40 @@ import (
 	"github.com/Silimim/hrapid-backend/utils"
 )
 
+type UserData struct {
+	ID       int32   `json:"id"`
+	Name     string  `json:"name"`
+	LastName *string `json:"last_name"`
+	Username string  `json:"username"`
+	Email    string  `json:"email"`
+	Phone    *string `json:"phone"`
+	Role     string  `json:"role"`
+}
+
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	var users []*model.User
+	var userData []*UserData
 
 	db.GetDB().Find(&users)
+
+	for _, user := range users {
+		userData = append(userData, &UserData{
+			ID:       user.ID,
+			Name:     user.Name,
+			LastName: user.LastName,
+			Username: user.Username,
+			Email:    user.Email,
+			Phone:    user.Phone,
+			Role:     user.Role,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
 
-	err := json.NewEncoder(w).Encode(users)
+	err := json.NewEncoder(w).Encode(userData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
