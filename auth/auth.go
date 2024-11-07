@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/Silimim/hrapid-backend/db"
 	"github.com/Silimim/hrapid-backend/db/model"
@@ -15,9 +17,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type loginReqBody struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 func JwtAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
+		tokenString := strings.Split(r.Header.Get("Authorization"), "Bearer ")[1]
 		if tokenString == "" {
 			http.Error(w, "missing authorization token", http.StatusUnauthorized)
 			return
@@ -28,10 +35,11 @@ func JwtAuthentication(next http.Handler) http.Handler {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 
-			return []byte("secret"), nil
+			return []byte(os.Getenv("HRAPID_SECRET")), nil
 		})
 
 		if err != nil {
+			println(err.Error())
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -45,7 +53,11 @@ func JwtAuthentication(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "user", user)
+			type contextKey string
+
+			const userKey contextKey = "user"
+
+			ctx := context.WithValue(r.Context(), userKey, user)
 			r = r.WithContext(ctx)
 		} else {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
@@ -93,7 +105,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	err = json.NewEncoder(w).Encode(user)
+	err = json.NewEncoder(w).Encode("user created")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -103,13 +115,16 @@ func Register(w http.ResponseWriter, r *http.Request) {
 func Login(w http.ResponseWriter, r *http.Request) {
 
 	var user model.User
+	var loginReqBody loginReqBody
 
-	if user.Username == "" || user.Password == "" {
+	json.NewDecoder(r.Body).Decode(&loginReqBody)
+
+	if loginReqBody.Username == "" || loginReqBody.Password == "" {
 		http.Error(w, "username and password cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	result := db.GetDB().Where("username = ?", user.Username).First(&user)
+	result := db.GetDB().Where("username = ?", loginReqBody.Username).First(&user)
 
 	if err := result.Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -119,7 +134,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(user.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReqBody.Password)); err != nil {
 		http.Error(w, "invalid username or password", http.StatusBadRequest)
 		return
 	}
@@ -156,7 +171,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte("secret"), nil
+		return []byte(os.Getenv("HRAPID_SECRET")), nil
 	})
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
