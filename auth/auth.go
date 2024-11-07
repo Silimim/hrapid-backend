@@ -129,8 +129,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if err := result.Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
+			return
 		}
-		http.Error(w, "uerror during user search", http.StatusInternalServerError)
+		http.Error(w, "error during user search", http.StatusInternalServerError)
 		return
 	}
 
