@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
 
 	"github.com/Silimim/hrapid-backend/db"
 	"github.com/Silimim/hrapid-backend/db/model"
+	"github.com/Silimim/hrapid-backend/utils"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -62,23 +62,28 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "payload error", http.StatusBadRequest)
+		return
 	}
 
 	if user.Username == "" || user.Password == "" || user.Email == "" {
 		http.Error(w, "username, password and email cannot be empty", http.StatusBadRequest)
+		return
 	}
 
 	if err := db.GetDB().Where("username = ? OR email = ?", user.Username, user.Email).First(&user).Error; err == nil {
 		http.Error(w, "username or email already exists", http.StatusBadRequest)
+		return
 	}
 
-	if !isValidEmail(user.Email) {
+	if !utils.IsValidEmail(user.Email) {
 		http.Error(w, "email is not in a valid format", http.StatusBadRequest)
+		return
 	}
 
-	hashedPassword, err := hashPassword(user.Password)
+	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		http.Error(w, "error during password hashing", http.StatusInternalServerError)
+		return
 	}
 
 	user.Password = hashedPassword
@@ -101,6 +106,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	if user.Username == "" || user.Password == "" {
 		http.Error(w, "username and password cannot be empty", http.StatusBadRequest)
+		return
 	}
 
 	result := db.GetDB().Where("username = ?", user.Username).First(&user)
@@ -110,15 +116,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 		}
 		http.Error(w, "uerror during user search", http.StatusInternalServerError)
+		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(user.Password)); err != nil {
 		http.Error(w, "invalid username or password", http.StatusBadRequest)
+		return
 	}
 
 	token, err := generateTokenPair(user)
 	if err != nil {
 		http.Error(w, "uerror during token generation", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -126,17 +135,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-}
-
-func isValidEmail(email string) bool {
-	re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
-	return re.MatchString(email)
-}
-
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
 }
 
 func Refresh(w http.ResponseWriter, r *http.Request) {
@@ -166,6 +166,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 			newTokenPair, err := generateTokenPair(*user)
 			if err != nil {
 				http.Error(w, "error in token generation", http.StatusInternalServerError)
+				return
 			}
 
 			w.WriteHeader(http.StatusOK)
@@ -173,9 +174,11 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 			err = json.NewEncoder(w).Encode(newTokenPair)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 		}
 
 		http.Error(w, "invalid user", http.StatusBadRequest)
+		return
 	}
 }
