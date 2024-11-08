@@ -157,17 +157,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 func Refresh(w http.ResponseWriter, r *http.Request) {
 
-	var tokenReq tokenReqBody
-
-	err := json.NewDecoder(r.Body).Decode(&tokenReq)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	tokenString := strings.Split(r.Header.Get("Authorization"), "Bearer ")[1]
+	if tokenString == "" {
+		http.Error(w, "missing authorization token", http.StatusUnauthorized)
 		return
 	}
 
-	var user *model.User
+	var user model.User
 
-	token, _ := jwt.Parse(tokenReq.RefreshToken, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -175,16 +173,26 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		return []byte(os.Getenv("HRAPID_SECRET")), nil
 	})
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		db.GetDB().Where("id = ?", int(claims["sub"].(float64))).First(&user)
-		if claims["sub"] == user.ID {
+	if err != nil {
+		println(err.Error())
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
 
-			newTokenPair, err := generateTokenPair(*user)
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userID := int32(claims["sub"].(float64))
+		db.GetDB().Where("id = ?", userID).First(&user)
+
+		if userID == user.ID {
+
+			println("user found")
+			newTokenPair, err := generateTokenPair(user)
 			if err != nil {
 				http.Error(w, "error in token generation", http.StatusInternalServerError)
 				return
 			}
 
+			println("responding")
 			w.WriteHeader(http.StatusOK)
 
 			err = json.NewEncoder(w).Encode(newTokenPair)
@@ -192,9 +200,13 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+		} else {
+			http.Error(w, "invalid user", http.StatusBadRequest)
+			return
 		}
 
-		http.Error(w, "invalid user", http.StatusBadRequest)
+	} else {
+		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 }

@@ -49,13 +49,23 @@ func main() {
 	apiRouter := r.PathPrefix("/api").Subrouter()
 	apiRouter.Use(auth.JwtAuthentication)
 	apiRouter.HandleFunc("/health", HealthCheckHandler)
+
 	apiRouter.HandleFunc("/users", api.GetUsers).Methods("GET")
 	apiRouter.HandleFunc("/users/{id}", api.GetUser).Methods("GET")
-	apiRouter.HandleFunc("/users/{username}", api.GetUserByUsername).Methods("GET")
+	apiRouter.HandleFunc("/users/username/{username}", api.GetUserByUsername).Methods("GET")
 	apiRouter.HandleFunc("/users", api.CreateUser).Methods("POST")
+
 	apiRouter.HandleFunc("/companies", api.GetCompanies).Methods("GET")
 	apiRouter.HandleFunc("/companies/{id}", api.GetCompany).Methods("GET")
 	apiRouter.HandleFunc("/companies", api.CreateCompany).Methods("POST")
+
+	apiRouter.HandleFunc("/employees", api.GetEmployees).Methods("GET")
+	apiRouter.HandleFunc("/employees/{id}", api.GetEmployee).Methods("GET")
+	apiRouter.HandleFunc("/employees", api.CreateEmployee).Methods("POST")
+
+	apiRouter.HandleFunc("/lists", api.GetLists).Methods("GET")
+	apiRouter.HandleFunc("/lists/{id}", api.GetList).Methods("GET")
+	apiRouter.HandleFunc("/lists", api.CreateList).Methods("POST")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(r)))

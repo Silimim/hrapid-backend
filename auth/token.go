@@ -8,10 +8,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-type tokenReqBody struct {
-	RefreshToken string `json:"refresh_token"`
-}
-
 func generateTokenPair(user model.User) (map[string]string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
