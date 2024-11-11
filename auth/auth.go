@@ -142,7 +142,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := generateTokenPair(user)
 	if err != nil {
-		http.Error(w, "uerror during token generation", http.StatusInternalServerError)
+		http.Error(w, "error during token generation", http.StatusInternalServerError)
 		return
 	}
 
@@ -185,14 +185,12 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 		if userID == user.ID {
 
-			println("user found")
 			newTokenPair, err := generateTokenPair(user)
 			if err != nil {
 				http.Error(w, "error in token generation", http.StatusInternalServerError)
 				return
 			}
 
-			println("responding")
 			w.WriteHeader(http.StatusOK)
 
 			err = json.NewEncoder(w).Encode(newTokenPair)
