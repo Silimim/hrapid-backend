@@ -54,7 +54,7 @@ func CreateCompany(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	err = json.NewEncoder(w).Encode(company)
+	err = json.NewEncoder(w).Encode("Company created successfully")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
