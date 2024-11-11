@@ -8,6 +8,7 @@ import (
 	"github.com/Silimim/hrapid-backend/api"
 	"github.com/Silimim/hrapid-backend/auth"
 	"github.com/Silimim/hrapid-backend/db"
+	"github.com/Silimim/hrapid-backend/table"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -56,8 +57,8 @@ func main() {
 	apiRouter.HandleFunc("/users", api.CreateUser).Methods("POST")
 
 	apiRouter.HandleFunc("/companies", api.GetCompanies).Methods("GET")
-	apiRouter.HandleFunc("/companies/{id}", api.GetCompany).Methods("GET")
-	apiRouter.HandleFunc("/companies", api.CreateCompany).Methods("POST")
+	apiRouter.HandleFunc("/company/{id}", api.GetCompany).Methods("GET")
+	apiRouter.HandleFunc("/company", api.CreateCompany).Methods("POST")
 
 	apiRouter.HandleFunc("/employees", api.GetEmployees).Methods("GET")
 	apiRouter.HandleFunc("/employees/{id}", api.GetEmployee).Methods("GET")
@@ -66,6 +67,10 @@ func main() {
 	apiRouter.HandleFunc("/lists", api.GetLists).Methods("GET")
 	apiRouter.HandleFunc("/lists/{id}", api.GetList).Methods("GET")
 	apiRouter.HandleFunc("/lists", api.CreateList).Methods("POST")
+
+	tableRouter := r.PathPrefix("/table").Subrouter()
+	tableRouter.Use(auth.JwtAuthentication)
+	tableRouter.HandleFunc("/companies", table.Companies).Methods("GET")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(r)))
