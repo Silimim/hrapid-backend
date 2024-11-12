@@ -23,6 +23,7 @@ type Company struct {
 	Email1      string     `gorm:"column:email1;not null" json:"email1"`
 	Email2      *string    `gorm:"column:email2" json:"email2"`
 	Sales       *float64   `gorm:"column:sales" json:"sales"`
+	Status      string     `gorm:"column:status;not null;default:PENDING" json:"status"`
 	DateAdded   *time.Time `gorm:"column:date_added" json:"date_added"`
 	UserAddedID *int32     `gorm:"column:user_added_id" json:"user_added_id"`
 }
