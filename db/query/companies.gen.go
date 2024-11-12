@@ -38,6 +38,7 @@ func newCompany(db *gorm.DB, opts ...gen.DOOption) company {
 	_company.Email1 = field.NewString(tableName, "email1")
 	_company.Email2 = field.NewString(tableName, "email2")
 	_company.Sales = field.NewFloat64(tableName, "sales")
+	_company.Status = field.NewString(tableName, "status")
 	_company.DateAdded = field.NewTime(tableName, "date_added")
 	_company.UserAddedID = field.NewInt32(tableName, "user_added_id")
 
@@ -61,6 +62,7 @@ type company struct {
 	Email1      field.String
 	Email2      field.String
 	Sales       field.Float64
+	Status      field.String
 	DateAdded   field.Time
 	UserAddedID field.Int32
 
@@ -90,6 +92,7 @@ func (c *company) updateTableName(table string) *company {
 	c.Email1 = field.NewString(table, "email1")
 	c.Email2 = field.NewString(table, "email2")
 	c.Sales = field.NewFloat64(table, "sales")
+	c.Status = field.NewString(table, "status")
 	c.DateAdded = field.NewTime(table, "date_added")
 	c.UserAddedID = field.NewInt32(table, "user_added_id")
 
@@ -108,7 +111,7 @@ func (c *company) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *company) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 13)
+	c.fieldMap = make(map[string]field.Expr, 14)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["company_name"] = c.CompanyName
 	c.fieldMap["address"] = c.Address
@@ -120,6 +123,7 @@ func (c *company) fillFieldMap() {
 	c.fieldMap["email1"] = c.Email1
 	c.fieldMap["email2"] = c.Email2
 	c.fieldMap["sales"] = c.Sales
+	c.fieldMap["status"] = c.Status
 	c.fieldMap["date_added"] = c.DateAdded
 	c.fieldMap["user_added_id"] = c.UserAddedID
 }
