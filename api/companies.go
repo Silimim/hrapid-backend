@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/Silimim/hrapid-backend/db"
 	"github.com/Silimim/hrapid-backend/db/model"
@@ -48,6 +49,12 @@ func CreateCompany(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	date := time.Now()
+	company.DateAdded = &date
+
+	userID := r.Context().Value("user").(model.User).ID
+	company.UserAddedID = &userID
 
 	db.GetDB().Create(&company)
 	w.Header().Set("Content-Type", "application/json")
