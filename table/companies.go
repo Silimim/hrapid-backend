@@ -10,20 +10,9 @@ import (
 	"github.com/Silimim/hrapid-backend/utils"
 )
 
-type CompanyHeader struct {
-	Header string `json:"header"`
-	Field  string `json:"field"`
-	Type   string `json:"type"`
-}
-
-type CompanyTable struct {
-	Headers []CompanyHeader `json:"headers"`
-	Data    []model.Company `json:"data"`
-}
-
 func Companies(w http.ResponseWriter, r *http.Request) {
 
-	var companyTable CompanyTable
+	var companyTable AutoTable
 	var companies []model.Company
 
 	var companyModel model.Company
@@ -32,23 +21,13 @@ func Companies(w http.ResponseWriter, r *http.Request) {
 
 	val := reflect.ValueOf(&companyModel).Elem()
 
-	headers := []CompanyHeader{}
-
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Type().Field(i).Name
-		fieldName := utils.ToSnakeCase(field)
-		headerName := utils.SplitCamelCase(field)
-		fieldType := val.Type().Field(i).Type.String()
-
-		headers = append(headers, CompanyHeader{
-			Header: headerName,
-			Field:  fieldName,
-			Type:   fieldType,
-		})
-	}
+	headers := headerDescriptor(val)
 
 	companyTable.Headers = headers
-	companyTable.Data = companies
+	companyTable.Data = make([]interface{}, len(companies))
+	for i, c := range companies {
+		companyTable.Data[i] = c
+	}
 
 	w.WriteHeader(http.StatusOK)
 
@@ -57,4 +36,40 @@ func Companies(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func headerDescriptor(val reflect.Value) []AutoTableHeader {
+	headers := []AutoTableHeader{}
+	for i := 0; i < val.NumField(); i++ {
+
+		field := val.Type().Field(i).Name
+
+		var fieldName = utils.ToSnakeCase(field)
+		var headerName = utils.SplitCamelCase(field)
+		var fieldType = val.Type().Field(i).Type.String()
+		var formatType AutoTableFormat
+
+		if field == "Status" {
+			enumType := "enum"
+			formatType.Type = &enumType
+			enum := []EnumType{
+				{"ACTIVE", "success"},
+				{"INACTIVE", "danger"},
+				{"PENDING", "warning"},
+				{"TERMINATED", "secondary"},
+			}
+			formatType.Enum = &enum
+		} else if field == "Sales" {
+			currencyType := "currency"
+			formatType.Type = &currencyType
+		}
+
+		headers = append(headers, AutoTableHeader{
+			Header:     headerName,
+			Field:      fieldName,
+			Type:       fieldType,
+			FormatType: formatType,
+		})
+	}
+	return headers
 }
