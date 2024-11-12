@@ -48,9 +48,17 @@ func headerDescriptor(val reflect.Value) []AutoTableHeader {
 		var headerName = utils.SplitCamelCase(field)
 		var fieldType = val.Type().Field(i).Type.String()
 		var formatType AutoTableFormat
+		var inputType = "text"
+		var required bool
+		if fieldType[0] == '*' {
+			required = false
+		} else {
+			required = true
+		}
 
 		if field == "Status" {
 			enumType := "enum"
+
 			formatType.Type = &enumType
 			enum := []EnumType{
 				{"ACTIVE", "success"},
@@ -59,9 +67,13 @@ func headerDescriptor(val reflect.Value) []AutoTableHeader {
 				{"TERMINATED", "secondary"},
 			}
 			formatType.Enum = &enum
+
+			inputType = "select"
+
 		} else if field == "Sales" {
 			currencyType := "currency"
 			formatType.Type = &currencyType
+			inputType = "number"
 		}
 
 		headers = append(headers, AutoTableHeader{
@@ -69,6 +81,8 @@ func headerDescriptor(val reflect.Value) []AutoTableHeader {
 			Field:      fieldName,
 			Type:       fieldType,
 			FormatType: formatType,
+			InputType:  inputType,
+			Required:   required,
 		})
 	}
 	return headers

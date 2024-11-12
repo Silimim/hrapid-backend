@@ -15,6 +15,8 @@ type AutoTableHeader struct {
 	Field      string          `json:"field"`
 	Type       string          `json:"type"`
 	FormatType AutoTableFormat `json:"formatType"`
+	InputType  string          `json:"inputType"`
+	Required   bool            `json:"required"`
 }
 
 type AutoTable struct {
