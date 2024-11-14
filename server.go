@@ -59,6 +59,8 @@ func main() {
 	apiRouter.HandleFunc("/companies", api.GetCompanies).Methods("GET")
 	apiRouter.HandleFunc("/company/{id}", api.GetCompany).Methods("GET")
 	apiRouter.HandleFunc("/company", api.CreateCompany).Methods("POST")
+	apiRouter.HandleFunc("/company", api.UpdateCompany).Methods("PUT")
+	apiRouter.HandleFunc("/company", api.DeleteCompany).Methods("DELETE")
 
 	apiRouter.HandleFunc("/employees", api.GetEmployees).Methods("GET")
 	apiRouter.HandleFunc("/employees/{id}", api.GetEmployee).Methods("GET")
