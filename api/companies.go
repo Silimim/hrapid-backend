@@ -53,7 +53,16 @@ func CreateCompany(w http.ResponseWriter, r *http.Request) {
 	date := time.Now()
 	company.DateAdded = &date
 
-	userID := r.Context().Value("user").(model.User).ID
+	print(r.Context().Value("user"))
+
+	if r.Context().Value("user") == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user := r.Context().Value("user")
+	userID := (user.(model.User)).ID
+
 	company.UserAddedID = &userID
 
 	db.GetDB().Create(&company)
@@ -62,6 +71,50 @@ func CreateCompany(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	err = json.NewEncoder(w).Encode("Company created successfully")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func UpdateCompany(w http.ResponseWriter, r *http.Request) {
+
+	var company model.Company
+
+	err := json.NewDecoder(r.Body).Decode(&company)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	db.GetDB().Save(&company)
+	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusOK)
+
+	err = json.NewEncoder(w).Encode("Company updated successfully")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func DeleteCompany(w http.ResponseWriter, r *http.Request) {
+
+	var company model.Company
+
+	err := json.NewDecoder(r.Body).Decode(&company)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	db.GetDB().Delete(&company)
+	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusOK)
+
+	err = json.NewEncoder(w).Encode("Company deleted successfully")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
