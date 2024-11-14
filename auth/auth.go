@@ -45,7 +45,7 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			userID := int(claims["sub"].(float64))
+			userID := int32(claims["sub"].(float64))
 			var user model.User
 			result := db.GetDB().Where("id = ?", userID).First(&user)
 			if result.Error != nil {
@@ -57,7 +57,7 @@ func JwtAuthentication(next http.Handler) http.Handler {
 
 			const userKey contextKey = "user"
 
-			ctx := context.WithValue(r.Context(), userKey, user)
+			ctx := context.WithValue(r.Context(), userKey, userID)
 			r = r.WithContext(ctx)
 		} else {
 			http.Error(w, "invalid token", http.StatusUnauthorized)

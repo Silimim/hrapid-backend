@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -41,38 +42,58 @@ func GetCompany(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCompany(w http.ResponseWriter, r *http.Request) {
+	if r.Body == nil {
+		http.Error(w, "Request body is empty", http.StatusBadRequest)
+		return
+	}
 
 	var company model.Company
-
 	err := json.NewDecoder(r.Body).Decode(&company)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Printf("Error decoding company: %v", err)
+		http.Error(w, "Invalid request body format", http.StatusBadRequest)
 		return
 	}
 
 	date := time.Now()
 	company.DateAdded = &date
 
-	print(r.Context().Value("user"))
+	type contextKey string
+	const userKey contextKey = "user"
 
-	if r.Context().Value("user") == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	userValue := r.Context().Value(userKey)
+	if userValue == nil {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	user := r.Context().Value("user")
-	userID := (user.(model.User)).ID
+	userID, ok := userValue.(int32)
+	if !ok {
+		log.Printf("Invalid user type in context. Got: %T, want: int32", userValue)
+		http.Error(w, "Invalid user ID type", http.StatusInternalServerError)
+		return
+	}
 
 	company.UserAddedID = &userID
 
-	db.GetDB().Create(&company)
+	result := db.GetDB().Create(&company)
+	if result.Error != nil {
+		log.Printf("Error creating company: %v", result.Error)
+		http.Error(w, "Error creating company", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
-	w.WriteHeader(http.StatusOK)
+	response := map[string]interface{}{
+		"message": "Company created successfully",
+		"id":      company.ID,
+	}
 
-	err = json.NewEncoder(w).Encode("Company created successfully")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
 }

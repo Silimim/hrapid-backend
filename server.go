@@ -72,7 +72,7 @@ func main() {
 
 	tableRouter := r.PathPrefix("/table").Subrouter()
 	tableRouter.Use(auth.JwtAuthentication)
-	tableRouter.HandleFunc("/companies", table.Companies).Methods("GET")
+	tableRouter.HandleFunc("/companies", table.CompaniesHandler).Methods("GET")
 
 	log.Printf("App starting on port %s", os.Getenv("HRAPID_PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("HRAPID_PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(r)))
