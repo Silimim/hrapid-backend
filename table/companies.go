@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"net/http"
 	"reflect"
 
@@ -17,13 +16,13 @@ func CompaniesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	table, err := buildCompanyTable(companies)
+	table, err := buildCompaniesTable(companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	sendJSONResponse(w, table)
+	utils.SendJSONResponse(w, table)
 }
 
 func fetchCompanies() ([]model.Company, error) {
@@ -32,9 +31,9 @@ func fetchCompanies() ([]model.Company, error) {
 	return companies, result.Error
 }
 
-func buildCompanyTable(companies []model.Company) (*AutoTable, error) {
+func buildCompaniesTable(companies []model.Company) (*AutoTable, error) {
 	var companyModel model.Company
-	headers := buildHeaders(reflect.ValueOf(&companyModel).Elem())
+	headers := buildCompaniesHeaders(reflect.ValueOf(&companyModel).Elem())
 
 	table := &AutoTable{
 		Headers: headers,
@@ -48,19 +47,19 @@ func buildCompanyTable(companies []model.Company) (*AutoTable, error) {
 	return table, nil
 }
 
-func buildHeaders(val reflect.Value) []AutoTableHeader {
+func buildCompaniesHeaders(val reflect.Value) []AutoTableHeader {
 	headers := make([]AutoTableHeader, 0, val.NumField())
 
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
-		header := buildHeader(field)
+		header := buildCompaniesHeader(field)
 		headers = append(headers, header)
 	}
 
 	return headers
 }
 
-func buildHeader(field reflect.StructField) AutoTableHeader {
+func buildCompaniesHeader(field reflect.StructField) AutoTableHeader {
 	fieldName := field.Name
 	fieldType := field.Type.String()
 
@@ -69,8 +68,8 @@ func buildHeader(field reflect.StructField) AutoTableHeader {
 		Field:      utils.ToSnakeCase(fieldName),
 		Type:       fieldType,
 		InputType:  "text",
-		Required:   !isPointerType(fieldType),
-		FormatType: getFormatType(fieldName),
+		Required:   !utils.IsPointerType(fieldType),
+		FormatType: getCompaniesFormatType(fieldName),
 	}
 
 	if fieldName == "Status" {
@@ -82,7 +81,7 @@ func buildHeader(field reflect.StructField) AutoTableHeader {
 	return header
 }
 
-func getFormatType(fieldName string) AutoTableFormat {
+func getCompaniesFormatType(fieldName string) AutoTableFormat {
 	var formatType AutoTableFormat
 
 	switch fieldName {
@@ -101,15 +100,4 @@ func getFormatType(fieldName string) AutoTableFormat {
 	}
 
 	return formatType
-}
-
-func isPointerType(fieldType string) bool {
-	return len(fieldType) > 0 && fieldType[0] == '*'
-}
-
-func sendJSONResponse(w http.ResponseWriter, data interface{}) {
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 }
