@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -24,22 +25,28 @@ type loginReqBody struct {
 
 func JwtAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := strings.Split(r.Header.Get("Authorization"), "Bearer ")[1]
-		if tokenString == "" {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
 			http.Error(w, "missing authorization token", http.StatusUnauthorized)
 			return
 		}
+
+		parts := strings.Split(authHeader, "Bearer ")
+		if len(parts) != 2 {
+			http.Error(w, "invalid authorization format", http.StatusUnauthorized)
+			return
+		}
+		tokenString := parts[1]
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-
 			return []byte(os.Getenv("HRAPID_SECRET")), nil
 		})
 
 		if err != nil {
-			println(err.Error())
+			log.Printf("Token parsing error: %v", err)
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -47,23 +54,20 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			userID := int32(claims["sub"].(float64))
 			var user model.User
+
 			result := db.GetDB().Where("id = ?", userID).First(&user)
 			if result.Error != nil {
+				log.Printf("User lookup error: %v", result.Error)
 				http.Error(w, "user not found", http.StatusNotFound)
 				return
 			}
 
-			type contextKey string
-
-			const userKey contextKey = "user"
-
-			ctx := context.WithValue(r.Context(), userKey, userID)
-			r = r.WithContext(ctx)
-		} else {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
+			ctx := context.WithValue(r.Context(), utils.UserKey, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-		next.ServeHTTP(w, r)
+
+		http.Error(w, "invalid token", http.StatusUnauthorized)
 	})
 }
 
